@@ -1,5 +1,0 @@
-rsa
-scapy
-sniffio
-#for arch linux
-#sudo pacman -S python-rsa python-scapy sniffio
