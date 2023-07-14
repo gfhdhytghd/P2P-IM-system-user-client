@@ -6,9 +6,8 @@ import binascii
 import ast
 import time
 import contacts
-import rsa
 
-def saveNewContact(ip, name):
+def addContact(ip, name):
     # Save the new contact to the contacts file
     with open('contacts.txt', 'a') as contactsFile:
         contactsFile.write(name + ' | ' + ip + '\n')
@@ -36,6 +35,9 @@ def getPublicKey(ip):
     return 'Unknown'
 
 def getContactName(ip):
+
+    if ip == 'You':
+        return 'You'
 
     try:
         # Get the name of the contact from the contacts file
@@ -71,7 +73,7 @@ def getContactList():
         with open('contacts.txt', 'r') as contactsFile:
             for line in contactsFile:
                 line = line.strip()
-                contactList.append(line.split(' | ')[0])
+                contactList.append(line.split(' | '))
     except:
         pass
 
@@ -91,20 +93,26 @@ def getContactListIP():
     return contactList
 
 def saveMessage(message, ip):
+    # Save the message to a messages file for the ip
+    currentDatetime = time.strftime('%Y-%m-%d %H:%M:%S')
+    with open(str(ip)+'_messages.txt', 'a') as messagesFile:
+        messagesFile.write(ip + " | " + currentDatetime + ' | ' + message + '\n')
+        
+
+def saveOutgoingMessage(message, ip):
     # Save the message to the messages file
-    currentDatetime = datetime.datetime.now()
-    with open('messages.txt', 'a') as messagesFile:
-        messagesFile.write(message + ' | ' + ip + ' | ' + currentDatetime + '\n')
+    currentDatetime = time.strftime('%Y-%m-%d %H:%M:%S')
+    with open(str(ip)+'_messages.txt', 'a') as messagesFile:
+        messagesFile.write("You | " + currentDatetime + ' | ' + message + '\n')
 
 def getMessages(ip):
     # Get the messages from the messages file
     messages = []
     try:
-        with open('messages.txt', 'r') as messagesFile:
+        with open(str(ip)+'_messages.txt', 'r') as messagesFile:
             for line in messagesFile:
-                line = line.strip()
-                if line.split(' | ')[1] == ip:
-                    messages.append(line.split(' | ')[0])
+                line = line.strip().split(' | ')
+                messages.append([line[0], line[1], line[2]])
     except:
         pass
 

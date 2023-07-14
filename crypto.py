@@ -2,14 +2,14 @@ import time
 import os
 import rsa
 
-def create_key_pair():
+def create_key_pair(key_size=2048):
 
     # Check if the key pair already exists
     if os.path.isfile('public_key.pem') and os.path.isfile('private_key.pem'):
         return
 
     # Generate a key pair
-    (public_key, private_key) = rsa.newkeys(512)
+    (public_key, private_key) = rsa.newkeys(key_size)
 
     # Save the public key to a file
     with open('public_key.pem', 'w+') as public_key_file:
@@ -20,9 +20,12 @@ def create_key_pair():
         private_key_file.write(private_key.save_pkcs1().decode())
 
 def get_public_key():
-    # Get the public key from the public_key.pem file
-    with open('public_key.pem', 'r') as public_key_file:
-        return public_key_file.read()
+    try:
+        # Get the public key from the public_key.pem file
+        with open('public_key.pem', 'r') as public_key_file:
+            return public_key_file.read()
+    except:
+        return None
     
 def get_private_key():
     # Get the private key from the private_key.pem file
