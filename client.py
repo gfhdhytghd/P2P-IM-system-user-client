@@ -296,10 +296,10 @@ def open_conversation():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('0.0.0.0', dport))
 
-    listener = threading.Thread(target=listen, args=(contactIp, sock,), daemon=True);
+    listener = threading.Thread(target=listen, args=(contactIp, sock,));
     listener.start()
 
-    keepAliveThread = threading.Thread(target=keepAlive, args=(contactIp, sock, ), daemon=True);
+    keepAliveThread = threading.Thread(target=keepAlive, args=(contactIp, sock, ));
     keepAliveThread.start()
     
     printMessages(contactIp)
