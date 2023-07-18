@@ -12,13 +12,23 @@ import crypto
 import rsa
 import os
 
-def clear(): os.system('cls' if os.name == 'nt' else 'clear')
-
 stopBackgroundThreads = False
 screen = ""
 prompt = ""
 msgToSend = ""
 
+"""
+Description: Clears the screen in the terminal
+Parameters: None
+Returns: None
+"""
+def clear(): os.system('cls' if os.name == 'nt' else 'clear')
+
+"""
+Description: Prints a string to the screen and adds it to the screen variable to be printed to the screen later
+Parameters: s - The string to print to the screen
+Returns: None
+"""
 def printToScreen(s):
     global screen, prompt
     clear()
@@ -27,6 +37,11 @@ def printToScreen(s):
     print(screen)
     print(prompt)
 
+"""
+Description: Asks the user for input and adds it to the prompt variable to be printed to the screen later
+Parameters: p - The prompt to display to the user
+Returns: The user's input
+"""
 def promptToScreen(p):
     global screen, prompt
     clear()
@@ -35,6 +50,11 @@ def promptToScreen(p):
     prompt = p + s
     return s
 
+"""
+Description: Check if the provided string is a valid IP address
+Parameters: ip - The string to check
+Returns: True if the string is a valid IP address, False otherwise
+"""
 def validateIP(ip):
     try:
         socket.inet_aton(ip)
@@ -46,9 +66,19 @@ sport = 50001
 dport = 50002
 
 
-
+"""
+Description: Background thread that listens for incoming messages
+Parameters: listenToIP - The IP address to listen for messages from
+            sock - The socket to listen on
+Returns: None
+"""
 def listen(listenToIP, sock):
 
+    """
+    Description: Decrypts and cleans up the message payload
+    Parameters: payload - The payload of the message
+    Returns: The decrypted and cleaned up message
+    """
     def getMessage(payload):
         try:
             msg = bytes(payload).decode('utf8')
@@ -68,6 +98,11 @@ def listen(listenToIP, sock):
 
         return cleanedMsg
 
+    """
+    Description: Handles any incoming packets and proccesses them accordingly (Called by packet sniffer)
+    Parameters: pkt - The packet to handle
+    Returns: None
+    """
     def packetHandler(pkt):
         global msgToSend
 
@@ -90,6 +125,8 @@ def listen(listenToIP, sock):
                 if msg == '--KEEP-ALIVE--':
                     return
                 
+                print(msg)
+
                 # Check if the message is a request for a public key
                 if msg == '--REQUIRE-PUBLIC-KEY--':
                     # Check if the public key was already generated
@@ -127,13 +164,18 @@ def listen(listenToIP, sock):
     except Exception as e:
         # Check if the error is because winpcap is not installed
         print(e)
-        if 'winpcap is not installed' in str(e).lower():
+        if 'winpcap is not installed' in str(e).lower() or 'npcap' in str(e).lower():
             print('Error: WinPcap or Npcap is not installed. Please install WinPcap or Npcap and try again.')
 
             # Kill the whole program and not just the thread
             os._exit(1)
 
-
+"""
+Description: Sends a message to the specified IP address every 5 seconds to keep the connection alive
+Parameters: ip - The IP address to send the message to
+            sock - The socket to send the message on
+Returns: None
+"""
 def keepAlive(ip, sock):
     # Send a message every 5 seconds to keep the connection alive
     while True:
@@ -173,12 +215,29 @@ if crypto.get_public_key() == None:
     crypto.create_key_pair(key_size)
 publicKey = crypto.get_public_key()
 
+"""
+Description: Sends own public key to a IP so they can encrypt messages to you
+Parameters: ip - The IP address to send the public key to
+            sock - The socket to send the public key on
+Returns: None
+"""
 def sendPublicKey(ip, sock):
     sock.sendto(publicKey.encode(), (ip, sport))
 
+"""
+Description: Asks a contact for their public key so you can encrypt messages to them
+Parameters: ip - The IP address to ask the public key from
+            sock - The socket to send the request on
+Returns: None
+"""
 def askForPublicKey(ip, sock):
     sock.sendto('--REQUIRE-PUBLIC-KEY--'.encode(), (ip, sport))
 
+"""
+Description: Prints all the messages from a contact to the screen
+Parameters: ip - The IP address of the contact
+Returns: None
+"""
 def printMessages(ip):
     # Load the messages from the contact's file
     messages = contacts.getMessages(ip)
@@ -188,6 +247,11 @@ def printMessages(ip):
         contactName = contacts.getContactName(message[0])
         printToScreen(contactName + ": " + message[2])
 
+"""
+Description: UI Function that Allows the user to send a message to a contact
+Parameters: None
+Returns: None
+"""
 def open_conversation():
 
     # Ask which contact to open
@@ -267,6 +331,11 @@ def open_conversation():
 
         main_menu()
 
+"""
+Description: UI Function that prompts the user to confirm an action
+Parameters: prompt - The prompt to display to the user
+Returns: True if the user confirms, False if they don't
+"""
 def confirm(prompt):
     """Prompts the user for a yes/no response."""
     while True:
@@ -278,12 +347,22 @@ def confirm(prompt):
         else:
             print("Please enter 'y' or 'n'.")
 
+"""
+Description: UI Function that closes the program if the user confirms
+Parameters: None
+Returns: None
+"""
 def quit():
     if confirm("\nExit? (Y/n) "):
         exit()
     else:
         main_menu()
 
+"""
+Description: UI Function that lists all the contacts in the user's contact list
+Parameters: None
+Returns: None
+"""
 def list_contacts():
     contactList = contacts.getContactList()
 
@@ -295,7 +374,11 @@ def list_contacts():
     for contact in contactList:
         print(contact[0] + ": " + contact[1])
 
-
+"""
+Description: UI Function that allows the user to delete a contact
+Parameters: None
+Returns: None
+"""
 def delete_contact():
     contactList = contacts.getContactList()
     clear()
@@ -324,6 +407,11 @@ def delete_contact():
 
     print("Contact deleted.")
 
+"""
+Description: UI Function that allows the user to add a new contact
+Parameters: None
+Returns: None
+"""
 def new_contact():
     clear()
     print("Enter the Name of the contact you would like to add.")
@@ -352,7 +440,11 @@ def new_contact():
 
     print("Contact added.")
 
-
+"""
+Description: UI Function that shows all the Options for the user to choose from
+Parameters: None
+Returns: None
+"""
 def main_menu():
     clear()
 
