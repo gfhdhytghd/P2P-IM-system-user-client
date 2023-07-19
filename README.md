@@ -29,4 +29,4 @@ sudo python3 client.py
 ```
 
 #### 3. Have Fun
-Create a new Contact and open the a Conversation
+Create a new Contact and open the Conversation
