@@ -147,6 +147,17 @@ def listen(listenToIP, sock):
                 
                 contactName = contacts.getContactName(sourceIP)
 
+                # Get the timestamp from the message
+                timestamp = msg.split('---TIMESTAMP-BEGIN--')[1].split('---TIMESTAMP-END--')[0]
+
+                # Check if the timestamp is older then 2 minutes
+                if int(timestamp) < int(time.time()) - 120:
+                    print('Message from ' + contactName + ' is too old. Ignoring...')
+                    return
+
+                # Get the message from the message
+                msg = msg.split('---TIMESTAMP-END--')[1]
+
                 # Save the message to the contact's file
                 contacts.saveMessage(msg, sourceIP)
                 
@@ -175,6 +186,8 @@ Parameters: ip - The IP address to send the message to
 Returns: None
 """
 def keepAlive(ip, sock):
+    global stopBackgroundThreads
+
     # Send a message every 5 seconds to keep the connection alive
     while True:
         if stopBackgroundThreads:
@@ -251,6 +264,7 @@ Parameters: None
 Returns: None
 """
 def open_conversation():
+    global stopBackgroundThreads
 
     # Ask which contact to open
     print('Which contact would you like to open?\n')
@@ -314,6 +328,12 @@ def open_conversation():
             msgToSend = promptToScreen('> ')
             printToScreen('You: ' + msgToSend)
             contacts.saveOutgoingMessage(msgToSend, contactIp)
+
+            # Get current timestamp as unix time
+            timestamp = int(time.time())
+
+            # Add the timestamp to the message
+            msgToSend = '---TIMESTAMP-BEGIN--' + str(timestamp) + '---TIMESTAMP-END--' + msgToSend
 
             # Encrypt the message
             partnerPublicKey = contacts.getPublicKey(contactIp)
