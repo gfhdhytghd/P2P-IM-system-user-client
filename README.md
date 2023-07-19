@@ -12,21 +12,22 @@ git clone https://github.com/gfhdhytghd/P2P-IM-system-user-client.git
 cd P2P-IM-system-user-client
 ```
 
+#### 1.
 ```
 pip install -r requirements.txt
 ```
-#### OR
 ```
 pip3 install -r requirements.txt
 ```
 
+#### 2.
 ```
 sudo python client.py
 ```
-#### OR
 ```
 sudo python3 client.py
 ```
 
+#### 3.
 Create a new Contact and open the a Conversation
 Have Fun!
