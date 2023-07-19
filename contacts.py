@@ -19,7 +19,7 @@ def removeContact(ip):
 
     with open('contacts.txt', 'w') as contactsFile:
         for line in lines:
-            if line.split(' | ')[1] != ip:
+            if not line.split(' | ')[1].strip() == ip.strip():
                 contactsFile.write(line)
 
 def savePublicKey(ip, public_key):
