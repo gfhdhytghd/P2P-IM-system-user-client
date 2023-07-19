@@ -1,2 +1,4 @@
 scapy==2.5.0
 rsa==4.9
+setuptools-rust
+cryptography==2.2.2
