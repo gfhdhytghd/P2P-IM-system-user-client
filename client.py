@@ -16,6 +16,7 @@ stopBackgroundThreads = False
 screen = ""
 prompt = ""
 msgToSend = ""
+contactOnline = False
 
 """
 Description: Clears the screen in the terminal
@@ -144,6 +145,19 @@ def listen(listenToIP, sock):
                         contacts.savePublicKey(sourceIP, msg)
 
                     return
+
+                # Check if the message is a ping
+                if msg == '--PING--':
+                    # Send a pong response
+                    sock.sendto('--PONG--'.encode(), (sourceIP, sport))
+                    return
+
+                # Check if the message is a pong
+                if msg == '--PONG--':
+                    global contactOnline
+                    
+                    contactOnline = True
+                    return
                 
                 contactName = contacts.getContactName(sourceIP)
 
@@ -199,6 +213,14 @@ def keepAlive(ip, sock):
             pass
 
         time.sleep(5)
+
+def ping(ip, sock):
+    global contactOnline
+
+    contactOnline = False
+
+    sock.sendto('--PING--'.encode(), (ip, sport))
+
 
 # Generate a key pair if one doesn't exist
 if crypto.get_public_key() == None:
@@ -325,6 +347,19 @@ def open_conversation():
                 time.sleep(5)
                 continue
 
+            # Ping the contact to see if they are online
+            ping(contactIp, sock)
+            print('Checking if contact is online...')
+
+            # Wait for the contact to respond to the ping
+            time.sleep(10)
+
+            # Check if the contact is online
+            if contactOnline:
+                print('\n\rContact is online.\n\r')
+            else:
+                printToScreen('\n\rContact seems to be offline.\n\r')
+
             msgToSend = promptToScreen('> ')
             printToScreen('You: ' + msgToSend)
             contacts.saveOutgoingMessage(msgToSend, contactIp)
@@ -410,20 +445,24 @@ def delete_contact():
         print(contact[0] + ": " + contact[1])
 
     print("\nEnter the Name of the contact you would like to delete.")
-    contactName = input("> ")
+    
+    try:
+        contactName = input("> ")
 
-    # Get the ip of the contact
-    contactIP = contacts.getContactIP(contactName)
+        # Get the ip of the contact
+        contactIP = contacts.getContactIP(contactName)
 
-    # Check if the contact exists
-    if contactIP == 'Unknown':
-        print("Contact does not exist.")
-        return
+        # Check if the contact exists
+        if contactIP == 'Unknown':
+            print("Contact does not exist.")
+            return
 
-    # Delete the contact
-    contacts.removeContact(contactIP)
+        # Delete the contact
+        contacts.removeContact(contactIP)
 
-    print("Contact deleted.")
+        print("Contact deleted.")
+    except KeyboardInterrupt:
+        main_menu()
 
 """
 Description: UI Function that allows the user to add a new contact
@@ -433,30 +472,33 @@ Returns: None
 def new_contact():
     clear()
     print("Enter the Name of the contact you would like to add.")
-    contactName = input("> ")
+    try:
+        contactName = input("> ")
 
-    # Check if the contact already exists
-    if contacts.getContactIP(contactName) != 'Unknown':
-        print("Contact already exists.")
-        return
+        # Check if the contact already exists
+        if contacts.getContactIP(contactName) != 'Unknown':
+            print("Contact already exists.")
+            return
 
-    print("Enter the IP of the contact you would like to add.")
+        print("Enter the IP of the contact you would like to add.")
 
-    # Check if the ip is valid
-    ipAddressValid = False
-    while ipAddressValid == False:
-        contactIP = input("> ")
+        # Check if the ip is valid
+        ipAddressValid = False
+        while ipAddressValid == False:
+            contactIP = input("> ")
 
-        # Check if the IP address format is valid
-        if validateIP(contactIP):
-            ipAddressValid = True
-        else:
-            print("Invalid IP address")
-    
-    # Add the contact
-    contacts.addContact(contactIP, contactName)
+            # Check if the IP address format is valid
+            if validateIP(contactIP):
+                ipAddressValid = True
+            else:
+                print("Invalid IP address")
+        
+        # Add the contact
+        contacts.addContact(contactIP, contactName)
 
-    print("Contact added.")
+        print("Contact added.")
+    except KeyboardInterrupt:
+        main_menu()
 
 """
 Description: UI Function that shows all the Options for the user to choose from
