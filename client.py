@@ -466,7 +466,7 @@ def main_menu():
     elif command == "dc":
         delete_contact()
     elif command == "fp":
-        print("Your fingerprint is: " + crypto.get_fingerprint())
+        print("Your fingerprint is: \n\r" + crypto.get_public_key())
     elif command == "q":
         quit()
     else:
