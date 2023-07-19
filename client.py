@@ -125,8 +125,6 @@ def listen(listenToIP, sock):
                 if msg == '--KEEP-ALIVE--':
                     return
                 
-                print(msg)
-
                 # Check if the message is a request for a public key
                 if msg == '--REQUIRE-PUBLIC-KEY--':
                     # Check if the public key was already generated
@@ -159,7 +157,7 @@ def listen(listenToIP, sock):
         except Exception as e:
             print(e)
 
-    try:    
+    try:
         sniff(prn=packetHandler)
     except Exception as e:
         # Check if the error is because winpcap is not installed
@@ -403,7 +401,7 @@ def delete_contact():
         return
 
     # Delete the contact
-    contacts.deleteContact(contactIP)
+    contacts.removeContact(contactIP)
 
     print("Contact deleted.")
 

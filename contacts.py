@@ -12,6 +12,16 @@ def addContact(ip, name):
     with open('contacts.txt', 'a') as contactsFile:
         contactsFile.write(name + ' | ' + ip + '\n')
 
+def removeContact(ip):
+    # Remove the contact from the contacts file
+    with open('contacts.txt', 'r') as contactsFile:
+        lines = contactsFile.readlines()
+
+    with open('contacts.txt', 'w') as contactsFile:
+        for line in lines:
+            if line.split(' | ')[1] != ip:
+                contactsFile.write(line)
+
 def savePublicKey(ip, public_key):
     # Save the public key to the public_keys file
     # Remove all newlines from the public key
