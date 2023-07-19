@@ -119,7 +119,7 @@ def listen(listenToIP, sock):
         
         try:
 
-            if destionationPort == 50001 and sourcePort == 50002 and sourceIP == listenToIP:
+            if destionationPort == 50001 and sourcePort == 50002:
                 msg = getMessage(payload)
 
                 # Ignore keep-alive messages
@@ -131,7 +131,10 @@ def listen(listenToIP, sock):
                     # Check if the public key was already generated
                     if not crypto.get_public_key() == None:
                         # Send the public key to the contact
-                        print('Sending public key...')
+                        # Only print the info if the chat with the contact is open
+                        if sourceIP == listenToIP:
+                            print('Sending public key...')
+                        
                         sendPublicKey(sourceIP, sock)
 
                     return
@@ -141,7 +144,10 @@ def listen(listenToIP, sock):
                     # Check if the public key was already saved for this ip
                     if contacts.getPublicKey(sourceIP) == 'Unknown':
                         # Save the public key to the contact's file
-                        print('Saving public key of Partner...')
+                        # Only print the info if the chat with the contact is open
+                        if sourceIP == listenToIP:
+                            print('Saving public key of Partner...')
+                        
                         contacts.savePublicKey(sourceIP, msg)
 
                     return
@@ -356,7 +362,7 @@ def open_conversation():
 
             # Check if the contact is online
             if contactOnline:
-                print('\n\rContact is online.\n\r')
+                printToScreen('\n\rContact is online.\n\r')
             else:
                 printToScreen('\n\rContact seems to be offline.\n\r')
 
