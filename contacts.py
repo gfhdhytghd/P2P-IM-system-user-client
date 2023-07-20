@@ -121,8 +121,11 @@ def getMessages(ip):
     try:
         with open(str(ip)+'_messages.txt', 'r') as messagesFile:
             for line in messagesFile:
-                line = line.strip().split(' | ')
-                messages.append([line[0], line[1], line[2]])
+                try:
+                    line = line.strip().split(' | ')
+                    messages.append([line[0], line[1], line[2]])
+                except:
+                    pass
     except:
         pass
 

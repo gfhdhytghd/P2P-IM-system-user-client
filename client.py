@@ -12,11 +12,16 @@ import crypto
 import rsa
 import os
 
+from rsa import DecryptionError
+
+
 stopBackgroundThreads = False
 screen = ""
 prompt = ""
 msgToSend = ""
 contactOnline = False
+
+sock = None
 
 """
 Description: Clears the screen in the terminal
@@ -155,14 +160,15 @@ def listen(listenToIP, sock):
                 # Check if the message is a ping
                 if msg == '--PING--':
                     # Send a pong response
-                    sock.sendto('--PONG--'.encode(), (sourceIP, sport))
+                    pong(sourceIP, sock)
                     return
 
                 # Check if the message is a pong
                 if msg == '--PONG--':
-                    global contactOnline
-                    
-                    contactOnline = True
+                    if sourceIP == listenToIP:
+                        global contactOnline
+                        
+                        contactOnline = True
                     return
                 
                 contactName = contacts.getContactName(sourceIP)
@@ -185,8 +191,11 @@ def listen(listenToIP, sock):
                     printToScreen(contactName + ': ' + msg)
                     printToScreen('> ')"""
 
+        except DecryptionError:
+            pass
         except Exception as e:
             print(e)
+            print("FUCK")
 
     try:
         sniff(prn=packetHandler)
@@ -219,6 +228,12 @@ def keepAlive(ip, sock):
             pass
 
         time.sleep(5)
+
+def pong(ip, sock):
+    try:
+        sock.sendto('--PONG--'.encode(), (ip, sport))
+    except:
+        pass
 
 def ping(ip, sock):
     global contactOnline
@@ -281,6 +296,10 @@ def printMessages(ip):
     # Load the messages from the contact's file
     messages = contacts.getMessages(ip)
 
+    # Only print the latest 10 messages
+    if len(messages) > 10:
+        messages = messages[-10:]
+
     # Print the messages
     for message in messages:
         contactName = contacts.getContactName(message[0])
@@ -293,6 +312,9 @@ Returns: None
 """
 def open_conversation():
     global stopBackgroundThreads
+    global screen
+
+    screen = ""
 
     # Ask which contact to open
     print('Which contact would you like to open?\n')
@@ -322,6 +344,8 @@ def open_conversation():
     # equiv: echo 'punch hole' | nc -u -p 50001 x.x.x.x 50002
     print('Punching hole...')
 
+    global sock
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('0.0.0.0', sport))
     sock.sendto(b'0', (contactIp, dport))
@@ -342,6 +366,22 @@ def open_conversation():
     keepAliveThread = threading.Thread(target=keepAlive, args=(contactIp, sock, ));
     keepAliveThread.start()
     
+    # Ping the contact to see if they are online
+    ping(contactIp, sock)
+    print('Checking if contact is online...')
+
+    # Wait for the contact to respond to the ping
+    for x in range(0, 6):
+        if contactOnline:
+            break
+        time.sleep(1)
+
+    # Check if the contact is online
+    if contactOnline:
+        printToScreen('\n\rContact is online.\n\r')
+    else:
+        printToScreen('\n\rContact seems to be offline.\n\r')
+
     printMessages(contactIp)
     try:
         print("\nPress Ctrl+C to return to the main menu.")
@@ -352,19 +392,6 @@ def open_conversation():
                 askForPublicKey(contactIp, sock)
                 time.sleep(5)
                 continue
-
-            # Ping the contact to see if they are online
-            ping(contactIp, sock)
-            print('Checking if contact is online...')
-
-            # Wait for the contact to respond to the ping
-            time.sleep(10)
-
-            # Check if the contact is online
-            if contactOnline:
-                printToScreen('\n\rContact is online.\n\r')
-            else:
-                printToScreen('\n\rContact seems to be offline.\n\r')
 
             msgToSend = promptToScreen('> ')
             printToScreen('You: ' + msgToSend)
@@ -413,6 +440,8 @@ Returns: None
 """
 def quit():
     if confirm("\nExit? (Y/n) "):
+        global sock
+        sock.close()
         exit()
     else:
         main_menu()
@@ -543,8 +572,8 @@ def main_menu():
     
     try:
         print("\nPress Ctrl+C to return to the main menu.")
-        while True: ### YOUR CODDE
-            pass    ### 
+        while True:
+            pass
     except KeyboardInterrupt:
         main_menu()
 
