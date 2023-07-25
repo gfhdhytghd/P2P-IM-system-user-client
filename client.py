@@ -79,6 +79,7 @@ Parameters: listenToIP - The IP address to listen for messages from
 Returns: None
 """
 def listen(listenToIP, sock):
+    latestMessages = []
 
     """
     Description: Decrypts and cleans up the message payload
@@ -184,9 +185,20 @@ def listen(listenToIP, sock):
                 # Get the message from the message
                 msg = msg.split('---TIMESTAMP-END--')[1]
 
+                # Check if the message is a duplicate
+                for message in latestMessages:
+                    if message[0] == sourceIP and message[1] == msg and message[2] == timestamp:
+                        return
+
                 # Save the message to the contact's file
                 contacts.saveMessage(msg, sourceIP)
-                
+                latestMessages.append((sourceIP, msg, timestamp))
+
+                # Only save the last 20 messages
+                if len(latestMessages) > 20:
+                    latestMessages.pop(0)
+
+
                 """if sourceIP == ip:
                     printToScreen(contactName + ': ' + msg)
                     printToScreen('> ')"""
@@ -195,7 +207,6 @@ def listen(listenToIP, sock):
             pass
         except Exception as e:
             print(e)
-            print("FUCK")
 
     try:
         sniff(prn=packetHandler)
@@ -513,6 +524,10 @@ def new_contact():
         # Check if the contact already exists
         if contacts.getContactIP(contactName) != 'Unknown':
             print("Contact already exists.")
+            return
+        # Check if the contact name is valid
+        if contactName == '':
+            print("Invalid contact name.")
             return
 
         print("Enter the IP of the contact you would like to add.")
