@@ -125,6 +125,8 @@ def packetHandler(pkt):
         #    return
 
         # Check if the source MAC is the same as the user's MAC
+
+
         if sourceMAC == crypto.getMACAddress():
             # Ignore Packets where the MAC is the same as this user's MAC since those are packets sent by this user and not received by this user
             return
