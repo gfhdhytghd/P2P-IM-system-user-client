@@ -120,19 +120,26 @@ def packetHandler(pkt):
     
     try:
         # Check if the destination IP is in the contact list
-        #if not contacts.getContactIP(sourceIP) == 'Unknown':
-        #    # Ignore Packets where the destination IP is in the contact list since those are packets sent by this user and not received by this user
-        #    return
-
-        # Check if the source MAC is the same as the user's MAC
-
-
-        if sourceMAC == crypto.getMACAddress():
-            # Ignore Packets where the MAC is the same as this user's MAC since those are packets sent by this user and not received by this user
+        if not contacts.getContactIP(sourceIP) == 'Unknown':
+            # Ignore Packets where the destination IP is not in the contact list since those are packets sent by this user and not received by this user
             return
 
+
+
+        # Check if the source MAC is the same as the user's MAC
+        #if sourceMAC == crypto.getMACAddress():
+        #    # Ignore Packets where the MAC is the same as this user's MAC since those are packets sent by this user and not received by this user
+        #    return
+            
+        
         if (destionationPort == 50001 and sourcePort == 50002) or (destionationPort == sport and sourcePort == dport):
             msg = getMessage(payload)
+
+            """print(msg)
+            print(sourceMAC)
+            print(crypto.getMACAddress())
+            print("---------------")"""
+
 
             # Ignore keep-alive messages
             if msg == '--KEEP-ALIVE--':
