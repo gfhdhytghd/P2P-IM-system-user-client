@@ -19,9 +19,36 @@ stopBackgroundThreads = False
 screen = ""
 prompt = ""
 msgToSend = ""
-contactOnline = False
 
-sock = None
+sport = 50001
+dport = 50002
+
+# Generate a key pair if one doesn't exist
+if crypto.get_public_key() == None:
+    print('You do not have a key pair yet. You will need to generate one now.')
+    print('Enter the size of the key you would like to generate.')
+    print('Recommended Options (The higher the number the more Secure, but the longer it takes to generate): [1024, 2048, 4096]')
+    key_size_valid = False
+    while key_size_valid == False:
+        key_size = input('> ')
+
+        # Check if the key size is valid
+        try:
+            key_size = int(key_size)
+
+            if key_size < 1024:
+                print('Key size must be greater or equal than 1024. Please try again.')
+            elif key_size > 4096:
+                print('Key size must be less or equal than 4096. Please try again.')
+            else:
+                key_size_valid = True
+        except:
+            print('Key size must be an integer')
+
+    print('Generating key pair. This may take a couple minutes...')
+    crypto.create_key_pair(key_size)
+publicKey = crypto.get_public_key()
+
 
 """
 Description: Clears the screen in the terminal
@@ -68,157 +95,6 @@ def validateIP(ip):
     except socket.error:
         return False
 
-sport = 50001
-dport = 50002
-
-
-"""
-Description: Background thread that listens for incoming messages
-Parameters: listenToIP - The IP address to listen for messages from
-            sock - The socket to listen on
-Returns: None
-"""
-def listen(listenToIP, sock):
-    latestMessages = []
-
-    """
-    Description: Decrypts and cleans up the message payload
-    Parameters: payload - The payload of the message
-    Returns: The decrypted and cleaned up message
-    """
-    def getMessage(payload):
-        try:
-            msg = bytes(payload).decode('utf8')
-
-            # Clean up the message to remove null bytes
-            msgRaw = [ord(c) for c in msg.strip()]
-            msgRaw = [x for x in msgRaw if x != 0]
-
-            cleanedMsg = ''
-            for char in msgRaw:
-                cleanedMsg += chr(char)
-        except:
-            cleanedMsg = crypto.decrypt_message(bytes(payload), crypto.get_private_key()).encode()
-
-            # Convert the message to a string
-            cleanedMsg = cleanedMsg.decode('utf8')
-
-        return cleanedMsg
-
-    """
-    Description: Handles any incoming packets and proccesses them accordingly (Called by packet sniffer)
-    Parameters: pkt - The packet to handle
-    Returns: None
-    """
-    def packetHandler(pkt):
-        global msgToSend
-
-        try:
-            sourceIP = pkt[IP].src
-            destionationIP = pkt[IP].dst
-            destionationPort = pkt[UDP].dport
-            sourcePort = pkt[UDP].sport
-            
-            payload = pkt[UDP].payload
-        except Exception as e:
-            return
-        
-        try:
-
-            if destionationPort == 50001 and sourcePort == 50002:
-                msg = getMessage(payload)
-
-                # Ignore keep-alive messages
-                if msg == '--KEEP-ALIVE--':
-                    return
-                
-                # Check if the message is a request for a public key
-                if msg == '--REQUIRE-PUBLIC-KEY--':
-                    # Check if the public key was already generated
-                    if not crypto.get_public_key() == None:
-                        # Send the public key to the contact
-                        # Only print the info if the chat with the contact is open
-                        if sourceIP == listenToIP:
-                            print('Sending public key...')
-                        
-                        sendPublicKey(sourceIP, sock)
-
-                    return
-
-                # Check if the message is a public key
-                if msg.startswith('-----BEGIN RSA PUBLIC KEY-----'):
-                    # Check if the public key was already saved for this ip
-                    if contacts.getPublicKey(sourceIP) == 'Unknown':
-                        # Save the public key to the contact's file
-                        # Only print the info if the chat with the contact is open
-                        if sourceIP == listenToIP:
-                            print('Saving public key of Partner...')
-                        
-                        contacts.savePublicKey(sourceIP, msg)
-
-                    return
-
-                # Check if the message is a ping
-                if msg == '--PING--':
-                    # Send a pong response
-                    pong(sourceIP, sock)
-                    return
-
-                # Check if the message is a pong
-                if msg == '--PONG--':
-                    if sourceIP == listenToIP:
-                        global contactOnline
-                        
-                        contactOnline = True
-                    return
-                
-                contactName = contacts.getContactName(sourceIP)
-
-                # Get the timestamp from the message
-                timestamp = msg.split('---TIMESTAMP-BEGIN--')[1].split('---TIMESTAMP-END--')[0]
-
-                # Check if the timestamp is older then 2 minutes
-                if int(timestamp) < int(time.time()) - 120:
-                    print('Message from ' + contactName + ' is too old. Ignoring...')
-                    return
-
-                # Get the message from the message
-                msg = msg.split('---TIMESTAMP-END--')[1]
-
-                # Check if the message is a duplicate
-                for message in latestMessages:
-                    if message[0] == sourceIP and message[1] == msg and message[2] == timestamp:
-                        return
-
-                # Save the message to the contact's file
-                contacts.saveMessage(msg, sourceIP)
-                latestMessages.append((sourceIP, msg, timestamp))
-
-                # Only save the last 20 messages
-                if len(latestMessages) > 20:
-                    latestMessages.pop(0)
-
-
-                """if sourceIP == ip:
-                    printToScreen(contactName + ': ' + msg)
-                    printToScreen('> ')"""
-
-        except DecryptionError:
-            pass
-        except Exception as e:
-            print(e)
-
-    try:
-        sniff(prn=packetHandler)
-    except Exception as e:
-        # Check if the error is because winpcap is not installed
-        print(e)
-        if 'winpcap is not installed' in str(e).lower() or 'npcap' in str(e).lower():
-            print('Error: WinPcap or Npcap is not installed. Please install WinPcap or Npcap and try again.')
-
-            # Kill the whole program and not just the thread
-            os._exit(1)
-
 """
 Description: Sends a message to the specified IP address every 5 seconds to keep the connection alive
 Parameters: ip - The IP address to send the message to
@@ -240,54 +116,16 @@ def keepAlive(ip, sock):
 
         time.sleep(5)
 
-def pong(ip, sock):
-    try:
-        sock.sendto('--PONG--'.encode(), (ip, sport))
-    except:
-        pass
-
-def ping(ip, sock):
-    global contactOnline
-
-    contactOnline = False
-
-    sock.sendto('--PING--'.encode(), (ip, sport))
-
-
-# Generate a key pair if one doesn't exist
-if crypto.get_public_key() == None:
-    print('You do not have a key pair yet. You will need to generate one now.')
-    print('Enter the size of the key you would like to generate.')
-    print('Recommended Options (The higher the number the more Secure, but the longer it takes to generate): [1024, 2048, 4096]')
-    key_size_valid = False
-    while key_size_valid == False:
-        key_size = input('> ')
-
-        # Check if the key size is valid
-        try:
-            key_size = int(key_size)
-
-            if key_size <= 1024:
-                print('Key size must be greater or equal than 1024. Please try again.')
-            elif key_size >= 4096:
-                print('Key size must be less or equal than 4096. Please try again.')
-            else:
-                key_size_valid = True
-        except:
-            print('Key size must be an integer')
-
-    print('Generating key pair. This may take a couple minutes...')
-    crypto.create_key_pair(key_size)
-publicKey = crypto.get_public_key()
-
 """
-Description: Sends own public key to a IP so they can encrypt messages to you
-Parameters: ip - The IP address to send the public key to
-            sock - The socket to send the public key on
+Description: Sends a message to the specified IP address to ask them if they are online
+Parameters: ip - The IP address to send the message to
+            sock - The socket to send the message on
 Returns: None
 """
-def sendPublicKey(ip, sock):
-    sock.sendto(publicKey.encode(), (ip, sport))
+def ping(ip, sock):
+    contacts.setOnlineStatus(ip, "Offline")
+
+    sock.sendto('--PING--'.encode(), (ip, sport))
 
 """
 Description: Asks a contact for their public key so you can encrypt messages to them
@@ -343,39 +181,10 @@ def open_conversation():
     if contactIp == 'Unknown':
         print('Contact does not exist. Please try again.')
         return
-    
-    contacts.setOnlineStatus(contactIp, "Offline")
-    
+        
+    sock = getSocket(contactIp)    
+
     stopBackgroundThreads = False
-
-    print('\nGot Peer')
-    print('  IP:          {}'.format(contactIp))
-    print('  Source Port: {}'.format(sport))
-    print('  Dest Port:   {}\n'.format(dport))
-
-    # punch hole
-    # equiv: echo 'punch hole' | nc -u -p 50001 x.x.x.x 50002
-    print('Punching hole...')
-
-    global sock
-
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind(('0.0.0.0', sport))
-    sock.sendto(b'0', (contactIp, dport))
-
-    print('Success! Ready to exchange keys\n')
-    sock.close()
-    time.sleep(1)
-
-
-    # send messages
-    # equiv: echo 'xxx' | nc -u -p 50002 x.x.x.x 50001
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind(('0.0.0.0', dport))
-
-    listener = threading.Thread(target=listen, args=(contactIp, sock,));
-    listener.start()
-
     keepAliveThread = threading.Thread(target=keepAlive, args=(contactIp, sock, ));
     keepAliveThread.start()
     
@@ -385,12 +194,12 @@ def open_conversation():
 
     # Wait for the contact to respond to the ping
     for x in range(0, 6):
-        if contactOnline:
+        if contacts.getContactOnlineStatus(contactIp) == "Online":
             break
         time.sleep(1)
 
     # Check if the contact is online
-    if contactOnline:
+    if contacts.getContactOnlineStatus(contactIp) == "Online":
         printToScreen('\n\rContact is online.\n\r')
     else:
         printToScreen('\n\rContact seems to be offline.\n\r')
@@ -429,6 +238,27 @@ def open_conversation():
         stopBackgroundThreads = True
 
         main_menu()
+
+"""
+Description: Gets a new socket to use for communication
+Parameters: targetIP - The IP address to which the socket should be bound
+Returns: A socket to use for communication
+"""
+def getSocket(targetIP):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(('0.0.0.0', sport))
+    sock.sendto(b'0', (targetIP, dport))
+
+    sock.close()
+    time.sleep(1)
+
+
+    # send messages
+    # equiv: echo 'xxx' | nc -u -p 50002 x.x.x.x 50001
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(('0.0.0.0', dport))
+
+    return sock
 
 """
 Description: UI Function that prompts the user to confirm an action

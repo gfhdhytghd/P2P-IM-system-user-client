@@ -10,7 +10,7 @@ import contacts
 def addContact(ip, name):
     # Save the new contact to the contacts file
     with open('contacts.txt', 'a') as contactsFile:
-        contactsFile.write(name + ' | ' + ip + '\n')
+        contactsFile.write(name + ' | ' + ip + ' | Offline\n')
 
 def removeContact(ip):
     # Remove the contact from the contacts file
@@ -29,6 +29,18 @@ def savePublicKey(ip, public_key):
 
     with open('public_keys.txt', 'a') as publicKeysFile:
         publicKeysFile.write(ip + ' | ' + public_key + '\n')
+
+def setOnlineStatus(ip, status):
+    # Set the online status of the contact
+    with open('contacts.txt', 'r') as contactsFile:
+        lines = contactsFile.readlines()
+
+    with open('contacts.txt', 'w') as contactsFile:
+        for line in lines:
+            if line.split(' | ')[1].strip() == ip.strip():
+                contactsFile.write(line.split(' | ')[0] + ' | ' + ip + ' | ' + status + '\n')
+            else:
+                contactsFile.write(line)
 
 def getPublicKey(ip):
     try:
@@ -75,6 +87,21 @@ def getContactIP(name):
 
     # If the contact is not in the contacts file, return 'Unknown'
     return 'Unknown'
+
+def getContactOnlineStatus(ip):
+    try:
+        # Get the online status of the contact from the contacts file
+        with open('contacts.txt', 'r') as contactsFile:
+            for line in contactsFile:
+                line = line.strip()
+                if line.split(' | ')[1].strip() == ip.strip():
+                    return line.split(' | ')[2].strip()
+    except:
+        pass
+
+    # If the contact is not in the contacts file, return 'Unknown'
+    return 'Unknown'
+
 
 def getContactList():
     try:
