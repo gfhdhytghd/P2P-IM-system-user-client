@@ -1,6 +1,8 @@
 import time
 import os
 import rsa
+import re
+import uuid
 
 def create_key_pair(key_size=2048):
 
@@ -39,3 +41,7 @@ def encrypt_message(message, public_key):
 def decrypt_message(message, private_key):
     # Decrypt the message with the private key
     return rsa.decrypt(message, private_key).decode()
+
+def getMACAddress():
+    # Get the MAC address of the device
+    return ':'.join(re.findall('..', '%012x' % uuid.getnode()))
